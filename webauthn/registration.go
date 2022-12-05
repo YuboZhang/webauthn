@@ -17,6 +17,8 @@ type RegistrationOption func(*protocol.PublicKeyCredentialCreationOptions)
 
 // BeginRegistration generates a new set of registration data to be sent to the client and authenticator.
 func (webauthn *WebAuthn) BeginRegistration(user User, opts ...RegistrationOption) (*protocol.CredentialCreation, *SessionData, error) {
+	userAccessLock.RLock()
+	defer userAccessLock.RUnlock()
 	challenge, err := protocol.CreateChallenge()
 	if err != nil {
 		return nil, nil, err
@@ -146,6 +148,9 @@ func (webauthn *WebAuthn) FinishRegistration(user User, session SessionData, res
 
 // CreateCredential verifies a parsed response against the user's credentials and session data.
 func (webauthn *WebAuthn) CreateCredential(user User, session SessionData, parsedResponse *protocol.ParsedCredentialCreationData) (*Credential, error) {
+	userAccessLock.RLock()
+	defer userAccessLock.RUnlock()
+
 	if !bytes.Equal(user.WebAuthnID(), session.UserID) {
 		return nil, protocol.ErrBadRequest.WithDetails("ID mismatch for User and Session")
 	}

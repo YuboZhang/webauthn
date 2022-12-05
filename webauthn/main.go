@@ -3,11 +3,14 @@ package webauthn
 import (
 	"fmt"
 	"net/url"
+	"sync"
 
 	"github.com/NHAS/webauthn/protocol"
 )
 
 var defaultTimeout = 60000
+
+var userAccessLock sync.RWMutex
 
 // WebAuthn is the primary interface of this package and contains the request handlers that should be called.
 type WebAuthn struct {

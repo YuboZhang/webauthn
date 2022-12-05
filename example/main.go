@@ -179,6 +179,8 @@ func BeginLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	fmt.Printf("%+v\n", sessionData)
+
 	http.SetCookie(w, &http.Cookie{
 		Name:  "authentication",
 		Value: sessionDb.StartSession(sessionData),
@@ -242,8 +244,6 @@ func FinishLogin(w http.ResponseWriter, r *http.Request) {
 		jsonResponse(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-
-	log.Println(c.Authenticator)
 
 	if c.Authenticator.CloneWarning {
 		log.Println("cloned key detected")
