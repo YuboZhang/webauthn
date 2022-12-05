@@ -1,7 +1,7 @@
 package webauthn
 
 import (
-	"github.com/go-webauthn/webauthn/protocol"
+	"github.com/NHAS/webauthn/protocol"
 )
 
 // Credential contains all needed information about a WebAuthn credential for storage

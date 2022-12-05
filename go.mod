@@ -1,4 +1,4 @@
-module github.com/go-webauthn/webauthn
+module github.com/NHAS/webauthn
 
 go 1.19
 

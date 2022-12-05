@@ -6,8 +6,8 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/go-webauthn/webauthn/metadata"
-	"github.com/go-webauthn/webauthn/protocol/webauthncbor"
+	"github.com/NHAS/webauthn/metadata"
+	"github.com/NHAS/webauthn/protocol/webauthncbor"
 	"github.com/google/uuid"
 )
 

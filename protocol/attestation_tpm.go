@@ -9,8 +9,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/go-webauthn/webauthn/metadata"
-	"github.com/go-webauthn/webauthn/protocol/webauthncose"
+	"github.com/NHAS/webauthn/metadata"
+	"github.com/NHAS/webauthn/protocol/webauthncose"
 	"github.com/google/go-tpm/tpm2"
 )
 

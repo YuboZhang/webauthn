@@ -1,7 +1,7 @@
 # WebAuthn Library
 
-[![GoDoc](https://godoc.org/github.com/go-webauthn/webauthn?status.svg)](https://godoc.org/github.com/go-webauthn/webauthn)
-[![Go Report Card](https://goreportcard.com/badge/github.com/go-webauthn/webauthn)](https://goreportcard.com/report/github.com/go-webauthn/webauthn)
+[![GoDoc](https://godoc.org/github.com/NHAS/webauthn?status.svg)](https://godoc.org/github.com/NHAS/webauthn)
+[![Go Report Card](https://goreportcard.com/badge/github.com/NHAS/webauthn)](https://goreportcard.com/report/github.com/NHAS/webauthn)
 
 
 This library is meant to handle [Web Authentication](https://w3c.github.io/webauthn) for Go apps that wish to implement 
@@ -25,7 +25,7 @@ avoid such changes and strive to notify users they may be unavoidable.
 
 ## Quickstart
 
-`go get github.com/go-webauthn/webauthn` and initialize it in your application with basic configuration values. 
+`go get github.com/NHAS/webauthn` and initialize it in your application with basic configuration values. 
 
 Make sure your `user` model is able to handle the interface functions laid out in `webauthn/user.go`. This means also 
 supporting the storage and retrieval of the credential and authenticator structs in `webauthn/credential.go` and 
@@ -35,7 +35,7 @@ supporting the storage and retrieval of the credential and authenticator structs
 
 ```golang
 import (
-	"github.com/go-webauthn/webauthn/webauthn"
+	"github.com/NHAS/webauthn/webauthn"
 )
 
 var (
@@ -120,8 +120,8 @@ You can modify the registration options in the following ways:
 ```golang
 // Wherever you handle your WebAuthn requests
 import (
-	"github.com/go-webauthn/webauthn/protocol"
-	"github.com/go-webauthn/webauthn/webauthn"
+	"github.com/NHAS/webauthn/protocol"
+	"github.com/NHAS/webauthn/webauthn"
 )
 
 var webAuthnHandler webauthn.WebAuthn // init this in your init function
@@ -153,8 +153,8 @@ You can modify the login options to allow only certain credentials:
 ```golang
 // Wherever you handle your WebAuthn requests
 import (
-	"github.com/go-webauthn/webauthn/protocol"
-	"github.com/go-webauthn/webauthn/webauthn"
+	"github.com/NHAS/webauthn/protocol"
+	"github.com/NHAS/webauthn/webauthn"
 )
 
 var webAuthnHandler webauthn.WebAuthn // init this in your init function

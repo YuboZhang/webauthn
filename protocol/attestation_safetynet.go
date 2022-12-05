@@ -8,7 +8,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/go-webauthn/webauthn/metadata"
+	"github.com/NHAS/webauthn/metadata"
 
 	jwt "github.com/golang-jwt/jwt/v4"
 	"github.com/mitchellh/mapstructure"

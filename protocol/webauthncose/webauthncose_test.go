@@ -7,7 +7,7 @@ import (
 
 	"golang.org/x/crypto/ed25519"
 
-	"github.com/go-webauthn/webauthn/protocol/webauthncbor"
+	"github.com/NHAS/webauthn/protocol/webauthncbor"
 	"github.com/stretchr/testify/assert"
 )
 

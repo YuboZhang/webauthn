@@ -5,8 +5,8 @@ import (
 	"encoding/base64"
 	"net/http"
 
-	"github.com/go-webauthn/webauthn/protocol"
-	"github.com/go-webauthn/webauthn/protocol/webauthncose"
+	"github.com/NHAS/webauthn/protocol"
+	"github.com/NHAS/webauthn/protocol/webauthncose"
 )
 
 // BEGIN REGISTRATION
