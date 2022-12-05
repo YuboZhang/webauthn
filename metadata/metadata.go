@@ -7,8 +7,8 @@ import (
 	"net/http"
 	"reflect"
 
+	"github.com/NHAS/webauthn/protocol/webauthncose"
 	"github.com/go-webauthn/revoke"
-	"github.com/go-webauthn/webauthn/protocol/webauthncose"
 	"github.com/google/uuid"
 	"github.com/mitchellh/mapstructure"
 
