@@ -158,30 +158,23 @@ func (webauthn *WebAuthn) validateLogin(user User, session SessionData, parsedRe
 	// allowCredentials.
 
 	// NON-NORMATIVE Prior Step: Verify that the allowCredentials for the session are owned by the user provided
-	userCredentials := user.WebAuthnCredentials()
-	var credentialFound bool
+	loginCredential := user.WebAuthnCredential(parsedResponse.RawID)
+	if loginCredential == nil {
+		return nil, protocol.ErrBadRequest.WithDetails("Unable to find the credential for the returned credential ID")
+	}
+
 	if len(session.AllowedCredentialIDs) > 0 {
+
 		var credentialsOwned bool
 		for _, allowedCredentialID := range session.AllowedCredentialIDs {
-			for _, userCredential := range userCredentials {
-				if bytes.Equal(userCredential.ID, allowedCredentialID) {
-					credentialsOwned = true
-					break
-				}
-				credentialsOwned = false
-			}
-		}
-		if !credentialsOwned {
-			return nil, protocol.ErrBadRequest.WithDetails("User does not own all credentials from the allowedCredentialList")
-		}
-		for _, allowedCredentialID := range session.AllowedCredentialIDs {
-			if bytes.Equal(parsedResponse.RawID, allowedCredentialID) {
-				credentialFound = true
+			if cred := user.WebAuthnCredential(allowedCredentialID); cred != nil {
+				credentialsOwned = true
 				break
 			}
 		}
-		if !credentialFound {
-			return nil, protocol.ErrBadRequest.WithDetails("User does not own the credential returned")
+
+		if !credentialsOwned {
+			return nil, protocol.ErrBadRequest.WithDetails("User does not own credential in the allowedCredentialList")
 		}
 	}
 
@@ -199,19 +192,6 @@ func (webauthn *WebAuthn) validateLogin(user User, session SessionData, parsedRe
 
 	// Step 3. Using credential’s id attribute (or the corresponding rawId, if base64url encoding is inappropriate
 	// for your use case), look up the corresponding credential public key.
-	var loginCredential Credential
-	for _, cred := range userCredentials {
-		if bytes.Equal(cred.ID, parsedResponse.RawID) {
-			loginCredential = cred
-			credentialFound = true
-			break
-		}
-		credentialFound = false
-	}
-
-	if !credentialFound {
-		return nil, protocol.ErrBadRequest.WithDetails("Unable to find the credential for the returned credential ID")
-	}
 
 	shouldVerifyUser := session.UserVerification == protocol.VerificationRequired
 
@@ -232,5 +212,5 @@ func (webauthn *WebAuthn) validateLogin(user User, session SessionData, parsedRe
 	// Handle step 17
 	loginCredential.Authenticator.UpdateCounter(parsedResponse.Response.AuthenticatorData.Counter)
 
-	return &loginCredential, nil
+	return loginCredential, nil
 }
