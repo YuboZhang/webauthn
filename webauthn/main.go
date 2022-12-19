@@ -21,8 +21,10 @@ type WebAuthn struct {
 type Config struct {
 	RPDisplayName string
 	RPID          string
-	RPOrigin      string
-	RPIcon        string
+	// Deprecated: Use RPOrigins instead
+	RPOrigin  string
+	RPOrigins []string
+	RPIcon    string
 	// Defaults for generating options
 	AttestationPreference  protocol.ConveyancePreference
 	AuthenticatorSelection protocol.AuthenticatorSelection
@@ -50,14 +52,12 @@ func (config *Config) validate() error {
 		config.Timeout = defaultTimeout
 	}
 
-	if config.RPOrigin == "" {
-		config.RPOrigin = config.RPID
-	} else {
-		u, err := url.Parse(config.RPOrigin)
-		if err != nil {
-			return fmt.Errorf("RPOrigin not valid URL: %+v", err)
-		}
-		config.RPOrigin = protocol.FullyQualifiedOrigin(u)
+	if len(config.RPOrigin) > 0 {
+		config.RPOrigins = append(config.RPOrigins, config.RPOrigin)
+	}
+
+	if len(config.RPOrigins) == 0 {
+		return fmt.Errorf("missing at least one RPOrigin")
 	}
 
 	if config.AuthenticatorSelection.RequireResidentKey == nil {
