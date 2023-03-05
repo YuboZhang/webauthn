@@ -1,4 +1,4 @@
-(function() {
+(function () {
     // check whether current browser supports WebAuthn
     if (!window.PublicKeyCredential) {
         alert("Error: this browser does not support WebAuthn");
@@ -10,7 +10,7 @@
 
 // Base64 to ArrayBuffer
 function bufferDecode(value) {
-    return Uint8Array.from(atob(value), c => c.charCodeAt(0));
+    return Uint8Array.from(atob(value.replace(/\-/g, "+").replace(/\_/g, "/")), c => c.charCodeAt(0));
 }
 
 // ArrayBuffer to URLBase64
