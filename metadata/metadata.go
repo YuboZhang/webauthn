@@ -9,10 +9,9 @@ import (
 
 	"github.com/NHAS/webauthn/protocol/webauthncose"
 	"github.com/go-webauthn/revoke"
+	"github.com/golang-jwt/jwt"
 	"github.com/google/uuid"
 	"github.com/mitchellh/mapstructure"
-
-	jwt "github.com/golang-jwt/jwt/v4"
 )
 
 type PublicKeyCredentialParameters struct {
@@ -23,7 +22,7 @@ type PublicKeyCredentialParameters struct {
 const (
 	// https://secure.globalsign.com/cacert/root-r3.crt
 	ProductionMDSRoot = "MIIDXzCCAkegAwIBAgILBAAAAAABIVhTCKIwDQYJKoZIhvcNAQELBQAwTDEgMB4GA1UECxMXR2xvYmFsU2lnbiBSb290IENBIC0gUjMxEzARBgNVBAoTCkdsb2JhbFNpZ24xEzARBgNVBAMTCkdsb2JhbFNpZ24wHhcNMDkwMzE4MTAwMDAwWhcNMjkwMzE4MTAwMDAwWjBMMSAwHgYDVQQLExdHbG9iYWxTaWduIFJvb3QgQ0EgLSBSMzETMBEGA1UEChMKR2xvYmFsU2lnbjETMBEGA1UEAxMKR2xvYmFsU2lnbjCCASIwDQYJKoZIhvcNAQEBBQADggEPADCCAQoCggEBAMwldpB5BngiFvXAg7aEyiie/QV2EcWtiHL8RgJDx7KKnQRfJMsuS+FggkbhUqsMgUdwbN1k0ev1LKMPgj0MK66X17YUhhB5uzsTgHeMCOFJ0mpiLx9e+pZo34knlTifBtc+ycsmWQ1z3rDI6SYOgxXG71uL0gRgykmmKPZpO/bLyCiR5Z2KYVc3rHQU3HTgOu5yLy6c+9C7v/U9AOEGM+iCK65TpjoWc4zdQQ4gOsC0p6Hpsk+QLjJg6VfLuQSSaGjlOCZgdbKfd/+RFO+uIEn8rUAVSNECMWEZXriX7613t2Saer9fwRPvm2L7DWzgVGkWqQPabumDk3F2xmmFghcCAwEAAaNCMEAwDgYDVR0PAQH/BAQDAgEGMA8GA1UdEwEB/wQFMAMBAf8wHQYDVR0OBBYEFI/wS3+oLkUkrk1Q+mOai97i3Ru8MA0GCSqGSIb3DQEBCwUAA4IBAQBLQNvAUKr+yAzv95ZURUm7lgAJQayzE4aGKAczymvmdLm6AC2upArT9fHxD4q/c2dKg8dEe3jgr25sbwMpjjM5RcOO5LlXbKr8EpbsU8Yt5CRsuZRj+9xTaGdWPoO4zzUhw8lo/s7awlOqzJCK6fBdRoyV3XpYKBovHd7NADdBj+1EbddTKJd+82cEHhXXipa0095MJ6RMG3NzdvQXmcIfeg7jLQitChws/zyrVQ4PkX4268NXSb7hLi18YIvDQVETI53O9zJrlAGomecsMx86OyXShkDOOyyGeMlhLxS67ttVb9+E7gUJTb0o2HLO02JQZR7rkpeDMdmztcpHWD9f"
-	// https://mds3.certinfra.fidoalliance.org/pki/MDS3ROOT.crt
+	// https://mds3.fido.tools/pki/MDS3ROOT.crt
 	ConformanceMDSRoot = "MIICaDCCAe6gAwIBAgIPBCqih0DiJLW7+UHXx/o1MAoGCCqGSM49BAMDMGcxCzAJBgNVBAYTAlVTMRYwFAYDVQQKDA1GSURPIEFsbGlhbmNlMScwJQYDVQQLDB5GQUtFIE1ldGFkYXRhIDMgQkxPQiBST09UIEZBS0UxFzAVBgNVBAMMDkZBS0UgUm9vdCBGQUtFMB4XDTE3MDIwMTAwMDAwMFoXDTQ1MDEzMTIzNTk1OVowZzELMAkGA1UEBhMCVVMxFjAUBgNVBAoMDUZJRE8gQWxsaWFuY2UxJzAlBgNVBAsMHkZBS0UgTWV0YWRhdGEgMyBCTE9CIFJPT1QgRkFLRTEXMBUGA1UEAwwORkFLRSBSb290IEZBS0UwdjAQBgcqhkjOPQIBBgUrgQQAIgNiAASKYiz3YltC6+lmxhPKwA1WFZlIqnX8yL5RybSLTKFAPEQeTD9O6mOz+tg8wcSdnVxHzwnXiQKJwhrav70rKc2ierQi/4QUrdsPes8TEirZOkCVJurpDFbXZOgs++pa4XmjYDBeMAsGA1UdDwQEAwIBBjAPBgNVHRMBAf8EBTADAQH/MB0GA1UdDgQWBBQGcfeCs0Y8D+lh6U5B2xSrR74eHTAfBgNVHSMEGDAWgBQGcfeCs0Y8D+lh6U5B2xSrR74eHTAKBggqhkjOPQQDAwNoADBlAjEA/xFsgri0xubSa3y3v5ormpPqCwfqn9s0MLBAtzCIgxQ/zkzPKctkiwoPtDzI51KnAjAmeMygX2S5Ht8+e+EQnezLJBJXtnkRWY+Zt491wgt/AwSs5PHHMv5QgjELOuMxQBc="
 	// Example from https://fidoalliance.org/specs/mds/fido-metadata-service-v3.0-ps-20210518.html
 	ExampleMDSRoot = "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"
@@ -107,7 +106,7 @@ type StatusReport struct {
 type AuthenticatorAttestationType string
 
 const (
-	// BasicFull - Indicates full basic attestation, based on an attestation private key shared among a class of authenticators (e.g. same model). Authenticators must provide its attestation signature during the registration process for the same reason. The attestation trust anchor is shared with FIDO Servers out of band (as part of the Metadata). This sharing process shouldt be done according to [UAFMetadataService].
+	// BasicFull - Indicates full basic attestation, based on an attestation private key shared among a class of authenticators (e.g. same model). Authenticators must provide its attestation signature during the registration process for the same reason. The attestation trust anchor is shared with FIDO Servers out of band (as part of the Metadata). This sharing process should be done according to [UAFMetadataService].
 	BasicFull AuthenticatorAttestationType = "basic_full"
 	// BasicSurrogate - Just syntactically a Basic Attestation. The attestation object self-signed, i.e. it is signed using the UAuth.priv key, i.e. the key corresponding to the UAuth.pub key included in the attestation object. As a consequence it does not provide a cryptographic proof of the security characteristics. But it is the best thing we can do if the authenticator is not able to have an attestation private key.
 	BasicSurrogate AuthenticatorAttestationType = "basic_surrogate"
@@ -174,6 +173,7 @@ func IsUndesiredAuthenticatorStatus(status AuthenticatorStatus) bool {
 			return true
 		}
 	}
+
 	return false
 }
 
@@ -339,10 +339,10 @@ type MetadataStatement struct {
 	UserVerificationDetails [][]VerificationMethodDescriptor `json:"userVerificationDetails"`
 	// A 16-bit number representing the bit fields defined by the KEY_PROTECTION constants in the FIDO Registry of Predefined Values
 	KeyProtection []string `json:"keyProtection"`
-	// This entry is set to true or it is ommitted, if the Uauth private key is restricted by the authenticator to only sign valid FIDO signature assertions.
+	// This entry is set to true or it is omitted, if the Uauth private key is restricted by the authenticator to only sign valid FIDO signature assertions.
 	// This entry is set to false, if the authenticator doesn't restrict the Uauth key to only sign valid FIDO signature assertions.
 	IsKeyRestricted bool `json:"isKeyRestricted"`
-	// This entry is set to true or it is ommitted, if Uauth key usage always requires a fresh user verification
+	// This entry is set to true or it is omitted, if Uauth key usage always requires a fresh user verification
 	// This entry is set to false, if the Uauth key can be used without requiring a fresh user verification, e.g. without any additional user interaction, if the user was verified a (potentially configurable) caching time ago.
 	IsFreshUserVerificationRequired bool `json:"isFreshUserVerificationRequired"`
 	// A 16-bit number representing the bit fields defined by the MATCHER_PROTECTION constants in the FIDO Registry of Predefined Values
@@ -441,6 +441,7 @@ func algKeyCoseDictionary() func(AuthenticationAlgorithm) algKeyCose {
 		ALG_SIGN_ED25519_EDDSA_SHA512_RAW:   {KeyType: webauthncose.OctetKey, Algorithm: webauthncose.AlgEdDSA, Curve: webauthncose.Ed25519},
 		ALG_SIGN_ED448_EDDSA_SHA512_RAW:     {KeyType: webauthncose.OctetKey, Algorithm: webauthncose.AlgEdDSA, Curve: webauthncose.Ed448},
 	}
+
 	return func(key AuthenticationAlgorithm) algKeyCose {
 		return mapping[key]
 	}
@@ -452,6 +453,7 @@ func AlgKeyMatch(key algKeyCose, algs []AuthenticationAlgorithm) bool {
 			return true
 		}
 	}
+
 	return false
 }
 
@@ -523,22 +525,23 @@ type AuthenticatorGetInfo struct {
 	VendorPrototypeConfigCommands []uint `json:"vendorPrototypeConfigCommands"`
 }
 
-// MDSGetEndpointsRequest is the request sent to the conformance metadata getEndpoints endpoint
+// MDSGetEndpointsRequest is the request sent to the conformance metadata getEndpoints endpoint.
 type MDSGetEndpointsRequest struct {
 	// The URL of the local server endpoint, e.g. https://webauthn.io/
 	Endpoint string `json:"endpoint"`
 }
 
-// MDSGetEndpointsResponse is the response received from a conformance metadata getEndpoints request
+// MDSGetEndpointsResponse is the response received from a conformance metadata getEndpoints request.
 type MDSGetEndpointsResponse struct {
-	// The status of the response
+	// The status of the response.
 	Status string `json:"status"`
-	// An array of urls, each pointing to a MetadataTOCPayload
+	// An array of urls, each pointing to a MetadataTOCPayload.
 	Result []string `json:"result"`
 }
 
 func unmarshalMDSBLOB(body []byte, c http.Client) (MetadataBLOBPayload, error) {
 	var payload MetadataBLOBPayload
+
 	token, err := jwt.Parse(string(body), func(token *jwt.Token) (interface{}, error) {
 		// 2. If the x5u attribute is present in the JWT Header, then
 		if _, ok := token.Header["x5u"].([]interface{}); ok {
@@ -555,29 +558,33 @@ func unmarshalMDSBLOB(body []byte, c http.Client) (MetadataBLOBPayload, error) {
 			chain = x5c
 		}
 
-		// The certificate chain MUST be verified to properly chain to the metadata TOC signing trust anchor
+		// The certificate chain MUST be verified to properly chain to the metadata TOC signing trust anchor.
 		valid, err := validateChain(chain, c)
 		if !valid || err != nil {
 			return nil, err
 		}
-		// chain validated, extract the TOC signing certificate from the chain
 
-		// create a buffer large enough to hold the certificate bytes
+		// Chain validated, extract the TOC signing certificate from the chain. Create a buffer large enough to hold the
+		// certificate bytes.
 		o := make([]byte, base64.StdEncoding.DecodedLen(len(chain[0].(string))))
-		// base64 decode the certificate into the buffer
+
+		// base64 decode the certificate into the buffer.
 		n, err := base64.StdEncoding.Decode(o, []byte(chain[0].(string)))
 		if err != nil {
 			return nil, err
 		}
-		// parse the certificate from the buffer
+
+		// Parse the certificate from the buffer.
 		cert, err := x509.ParseCertificate(o[:n])
 		if err != nil {
 			return nil, err
 		}
+
 		// 4. Verify the signature of the Metadata TOC object using the TOC signing certificate chain
-		// jwt.Parse() uses the TOC signing certificate public key internally to verify the signature
+		// jwt.Parse() uses the TOC signing certificate public key internally to verify the signature.
 		return cert.PublicKey, err
 	})
+
 	if err != nil {
 		return payload, err
 	}
@@ -589,10 +596,12 @@ func unmarshalMDSBLOB(body []byte, c http.Client) (MetadataBLOBPayload, error) {
 
 func validateChain(chain []interface{}, c http.Client) (bool, error) {
 	oRoot := make([]byte, base64.StdEncoding.DecodedLen(len(MDSRoot)))
+
 	nRoot, err := base64.StdEncoding.Decode(oRoot, []byte(MDSRoot))
 	if err != nil {
 		return false, err
 	}
+
 	rootcert, err := x509.ParseCertificate(oRoot[:nRoot])
 	if err != nil {
 		return false, err
@@ -603,10 +612,12 @@ func validateChain(chain []interface{}, c http.Client) (bool, error) {
 	roots.AddCert(rootcert)
 
 	o := make([]byte, base64.StdEncoding.DecodedLen(len(chain[1].(string))))
+
 	n, err := base64.StdEncoding.Decode(o, []byte(chain[1].(string)))
 	if err != nil {
 		return false, err
 	}
+
 	intcert, err := x509.ParseCertificate(o[:n])
 	if err != nil {
 		return false, err
@@ -614,6 +625,7 @@ func validateChain(chain []interface{}, c http.Client) (bool, error) {
 
 	if revoked, ok := revoke.VerifyCertificate(intcert); !ok {
 		issuer := intcert.IssuingCertificateURL
+
 		if issuer != nil {
 			return false, errCRLUnavailable
 		}
@@ -625,14 +637,17 @@ func validateChain(chain []interface{}, c http.Client) (bool, error) {
 	ints.AddCert(intcert)
 
 	l := make([]byte, base64.StdEncoding.DecodedLen(len(chain[0].(string))))
+
 	n, err = base64.StdEncoding.Decode(l, []byte(chain[0].(string)))
 	if err != nil {
 		return false, err
 	}
+
 	leafcert, err := x509.ParseCertificate(l[:n])
 	if err != nil {
 		return false, err
 	}
+
 	if revoked, ok := revoke.VerifyCertificate(leafcert); !ok {
 		return false, errCRLUnavailable
 	} else if revoked {
@@ -643,16 +658,18 @@ func validateChain(chain []interface{}, c http.Client) (bool, error) {
 		Roots:         roots,
 		Intermediates: ints,
 	}
+
 	_, err = leafcert.Verify(opts)
+
 	return err == nil, err
 }
 
 type MetadataError struct {
-	// Short name for the type of error that has occurred
+	// Short name for the type of error that has occurred.
 	Type string `json:"type"`
-	// Additional details about the error
+	// Additional details about the error.
 	Details string `json:"error"`
-	// Information to help debug the error
+	// Information to help debug the error.
 	DevInfo string `json:"debug"`
 }
 

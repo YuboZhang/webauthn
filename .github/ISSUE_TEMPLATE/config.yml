@@ -5,6 +5,11 @@ contact_links:
     url: https://github.com/NHAS/webauthn
     about: Read the documentation
   - name: Question/Other
+<<<<<<< HEAD
     url: https://github.com/NHAS/webauthn/discussions/new
     about: Discuss other questsions etc.
+=======
+    url: https://github.com/go-webauthn/webauthn/discussions/new
+    about: Discuss other questions etc.
+>>>>>>> upstream/master
 ...

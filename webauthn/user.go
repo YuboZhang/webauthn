@@ -1,5 +1,6 @@
 package webauthn
 
+<<<<<<< HEAD
 // User is built to interface with the Relying Party's User entry and
 // elaborate the fields and methods needed for WebAuthn
 type User interface {
@@ -19,6 +20,9 @@ type User interface {
 	WebAuthnCredentials() []*Credential
 }
 
+=======
+// TODO: move this to a _test.go file.
+>>>>>>> upstream/master
 type defaultUser struct {
 	id []byte
 }

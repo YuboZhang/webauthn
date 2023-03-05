@@ -7,7 +7,7 @@ import (
 )
 
 // URLEncodedBase64 represents a byte slice holding URL-encoded base64 data.
-// When fields of this type are unmarshaled from JSON, the data is base64
+// When fields of this type are unmarshalled from JSON, the data is base64
 // decoded into a byte slice.
 type URLEncodedBase64 []byte
 
@@ -22,9 +22,15 @@ func (e *URLEncodedBase64) UnmarshalJSON(data []byte) error {
 		return nil
 	}
 
-	// Trim the leading spaces
+	// TODO: Investigate this line. It is commented as trimming the leading spaces but appears to trim the leading and trailing double quotes instead.
+	// Trim the leading spaces.
 	data = bytes.Trim(data, "\"")
+
+	// Trim the trailing equal characters.
+	data = bytes.TrimRight(data, "=")
+
 	out := make([]byte, base64.RawURLEncoding.DecodedLen(len(data)))
+
 	n, err := base64.RawURLEncoding.Decode(out, data)
 	if err != nil {
 		return err
@@ -32,6 +38,7 @@ func (e *URLEncodedBase64) UnmarshalJSON(data []byte) error {
 
 	v := reflect.ValueOf(e).Elem()
 	v.SetBytes(out[:n])
+
 	return nil
 }
 
@@ -41,5 +48,6 @@ func (e URLEncodedBase64) MarshalJSON() ([]byte, error) {
 	if e == nil {
 		return []byte("null"), nil
 	}
+
 	return []byte(`"` + base64.RawURLEncoding.EncodeToString(e) + `"`), nil
 }

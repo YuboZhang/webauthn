@@ -14,9 +14,12 @@ const (
 	maxCredentialIDLength = 1023
 )
 
-// Authenticators respond to Relying Party requests by returning an object derived from the
-// AuthenticatorResponse interface. See §5.2. Authenticator Responses
-// https://www.w3.org/TR/webauthn/#iface-authenticatorresponse
+// AuthenticatorResponse represents the IDL with the same name.
+//
+// Authenticators respond to Relying Party requests by returning an object derived from the AuthenticatorResponse
+// interface
+//
+// Specification: §5.2. Authenticator Responses (https://www.w3.org/TR/webauthn/#iface-authenticatorresponse)
 type AuthenticatorResponse struct {
 	// From the spec https://www.w3.org/TR/webauthn/#dom-authenticatorresponse-clientdatajson
 	// This attribute contains a JSON serialization of the client data passed to the authenticator
@@ -24,18 +27,20 @@ type AuthenticatorResponse struct {
 	ClientDataJSON URLEncodedBase64 `json:"clientDataJSON"`
 }
 
-// AuthenticatorData From §6.1 of the spec.
-// The authenticator data structure encodes contextual bindings made by the authenticator. These bindings
-// are controlled by the authenticator itself, and derive their trust from the WebAuthn Relying Party's
-// assessment of the security properties of the authenticator. In one extreme case, the authenticator
-// may be embedded in the client, and its bindings may be no more trustworthy than the client data.
-// At the other extreme, the authenticator may be a discrete entity with high-security hardware and
-// software, connected to the client over a secure channel. In both cases, the Relying Party receives
-// the authenticator data in the same format, and uses its knowledge of the authenticator to make
+// AuthenticatorData represents the IDL with the same name.
+//
+// The authenticator data structure encodes contextual bindings made by the authenticator. These bindings are controlled
+// by the authenticator itself, and derive their trust from the WebAuthn Relying Party's assessment of the security
+// properties of the authenticator. In one extreme case, the authenticator may be embedded in the client, and its
+// bindings may be no more trustworthy than the client data. At the other extreme, the authenticator may be a discrete
+// entity with high-security hardware and software, connected to the client over a secure channel. In both cases, the
+// Relying Party receives the authenticator data in the same format, and uses its knowledge of the authenticator to make
 // trust decisions.
 //
-// The authenticator data, at least during attestation, contains the Public Key that the RP stores
-// and will associate with the user attempting to register.
+// The authenticator data has a compact but extensible encoding. This is desired since authenticators can be devices
+// with limited capabilities and low power requirements, with much simpler software stacks than the client platform.
+//
+// Specification: §6.1. Authenticator Data (https://www.w3.org/TR/webauthn/#sctn-authenticator-data)
 type AuthenticatorData struct {
 	RPIDHash []byte                 `json:"rpid"`
 	Flags    AuthenticatorFlags     `json:"flags"`
@@ -47,72 +52,116 @@ type AuthenticatorData struct {
 type AttestedCredentialData struct {
 	AAGUID       []byte `json:"aaguid"`
 	CredentialID []byte `json:"credential_id"`
-	// The raw credential public key bytes received from the attestation data
+
+	// The raw credential public key bytes received from the attestation data.
 	CredentialPublicKey []byte `json:"public_key"`
 }
 
-// AuthenticatorAttachment https://www.w3.org/TR/webauthn/#dom-authenticatorselectioncriteria-authenticatorattachment
+// AuthenticatorAttachment represents the IDL enum of the same name, and is used as part of the Authenticator Selection
+// Criteria.
+//
+// This enumeration’s values describe authenticators' attachment modalities. Relying Parties use this to express a
+// preferred authenticator attachment modality when calling navigator.credentials.create() to create a credential.
+//
+// If this member is present, eligible authenticators are filtered to only authenticators attached with the specified
+// §5.4.5 Authenticator Attachment Enumeration (enum AuthenticatorAttachment). The value SHOULD be a member of
+// AuthenticatorAttachment but client platforms MUST ignore unknown values, treating an unknown value as if the member
+// does not exist.
+//
+// Specification: §5.4.4. Authenticator Selection Criteria (https://www.w3.org/TR/webauthn/#dom-authenticatorselectioncriteria-authenticatorattachment)
+//
+// Specification: §5.4.5. Authenticator Attachment Enumeration (https://www.w3.org/TR/webauthn/#enum-attachment)
 type AuthenticatorAttachment string
 
 const (
-	// Platform - A platform authenticator is attached using a client device-specific transport, called
-	// platform attachment, and is usually not removable from the client device. A public key credential
-	//  bound to a platform authenticator is called a platform credential.
+	// Platform represents a platform authenticator is attached using a client device-specific transport, called
+	// platform attachment, and is usually not removable from the client device. A public key credential bound to a
+	// platform authenticator is called a platform credential.
 	Platform AuthenticatorAttachment = "platform"
-	// CrossPlatform A roaming authenticator is attached using cross-platform transports, called
-	// cross-platform attachment. Authenticators of this class are removable from, and can "roam"
-	// among, client devices. A public key credential bound to a roaming authenticator is called a
-	// roaming credential.
+
+	// CrossPlatform represents a roaming authenticator is attached using cross-platform transports, called
+	// cross-platform attachment. Authenticators of this class are removable from, and can "roam" among, client devices.
+	// A public key credential bound to a roaming authenticator is called a roaming credential.
 	CrossPlatform AuthenticatorAttachment = "cross-platform"
 )
 
-// ResidentKeyRequirement https://www.w3.org/TR/webauthn/#dom-authenticatorselectioncriteria-residentkey
+// ResidentKeyRequirement represents the IDL of the same name.
+//
+// This enumeration’s values describe the Relying Party's requirements for client-side discoverable credentials
+// (formerly known as resident credentials or resident keys).
+//
+// Specifies the extent to which the Relying Party desires to create a client-side discoverable credential. For
+// historical reasons the naming retains the deprecated “resident” terminology. The value SHOULD be a member of
+// ResidentKeyRequirement but client platforms MUST ignore unknown values, treating an unknown value as if the member
+// does not exist. If no value is given then the effective value is required if requireResidentKey is true or
+// discouraged if it is false or absent.
+//
+// Specification: §5.4.4. Authenticator Selection Criteria (https://www.w3.org/TR/webauthn/#dom-authenticatorselectioncriteria-residentkey)
+//
+// Specification: §5.4.6. Resident Key Requirement Enumeration (https://www.w3.org/TR/webauthn/#enumdef-residentkeyrequirement)
 type ResidentKeyRequirement string
 
 const (
-	// ResidentKeyRequirementDiscouraged indicates to the client we do not want a discoverable credential. This is the default.
+	// ResidentKeyRequirementDiscouraged indicates the Relying Party prefers creating a server-side credential, but will
+	// accept a client-side discoverable credential. This is the default.
 	ResidentKeyRequirementDiscouraged ResidentKeyRequirement = "discouraged"
 
 	// ResidentKeyRequirementPreferred indicates to the client we would prefer a discoverable credential.
 	ResidentKeyRequirementPreferred ResidentKeyRequirement = "preferred"
 
-	// ResidentKeyRequirementRequired indicates to the client we require a discoverable credential and that it should
-	// fail if the credential does not support this feature.
+	// ResidentKeyRequirementRequired indicates the Relying Party requires a client-side discoverable credential, and is
+	// prepared to receive an error if a client-side discoverable credential cannot be created.
 	ResidentKeyRequirementRequired ResidentKeyRequirement = "required"
 )
 
-// Authenticators may implement various transports for communicating with clients. This enumeration defines
-// hints as to how clients might communicate with a particular authenticator in order to obtain an assertion
-// for a specific credential. Note that these hints represent the WebAuthn Relying Party's best belief as to
-// how an authenticator may be reached. A Relying Party may obtain a list of transports hints from some
-// attestation statement formats or via some out-of-band mechanism; it is outside the scope of this
-// specification to define that mechanism.
-// See §5.10.4. Authenticator Transport https://www.w3.org/TR/webauthn/#transport
+// AuthenticatorTransport represents the IDL enum with the same name.
+//
+// Authenticators may implement various transports for communicating with clients. This enumeration defines hints as to
+// how clients might communicate with a particular authenticator in order to obtain an assertion for a specific
+// credential. Note that these hints represent the WebAuthn Relying Party's best belief as to how an authenticator may
+// be reached. A Relying Party will typically learn of the supported transports for a public key credential via
+// getTransports().
+//
+// Specification: §5.8.4. Authenticator Transport Enumeration (https://www.w3.org/TR/webauthn/#enumdef-authenticatortransport)
 type AuthenticatorTransport string
 
 const (
-	// USB The authenticator should transport information over USB
+	// USB indicates the respective authenticator can be contacted over removable USB.
 	USB AuthenticatorTransport = "usb"
-	// NFC The authenticator should transport information over Near Field Communication Protocol
+
+	// NFC indicates the respective authenticator can be contacted over Near Field Communication (NFC).
 	NFC AuthenticatorTransport = "nfc"
-	// BLE The authenticator should transport information over Bluetooth
+
+	// BLE indicates the respective authenticator can be contacted over Bluetooth Smart (Bluetooth Low Energy / BLE).
 	BLE AuthenticatorTransport = "ble"
-	// Internal the client should use an internal source like a TPM or SE
-	Internal AuthenticatorTransport = "internal"
-	// Hybrid indicates the respective authenticator can be contacted using a combination of (often separate) data-transport and proximity mechanisms. This supports, for example, authentication on a desktop computer using a smartphone.
+
+	// Hybrid indicates the respective authenticator can be contacted using a combination of (often separate)
+	// data-transport and proximity mechanisms. This supports, for example, authentication on a desktop computer using
+	// a smartphone.
+	//
+	// WebAuthn Level 3.
 	Hybrid AuthenticatorTransport = "hybrid"
+
+	// Internal indicates the respective authenticator is contacted using a client device-specific transport, i.e., it
+	// is a platform authenticator. These authenticators are not removable from the client device.
+	Internal AuthenticatorTransport = "internal"
 )
 
+// UserVerificationRequirement is a representation of the UserVerificationRequirement IDL enum.
+//
 // A WebAuthn Relying Party may require user verification for some of its operations but not for others,
 // and may use this type to express its needs.
-// See §5.10.6. User Verification Requirement Enumeration https://www.w3.org/TR/webauthn/#userVerificationRequirement
+//
+// Specification: §5.8.6. User Verification Requirement Enumeration (https://www.w3.org/TR/webauthn/#enum-userVerificationRequirement)
 type UserVerificationRequirement string
 
 const (
 	// VerificationRequired User verification is required to create/release a credential
 	VerificationRequired UserVerificationRequirement = "required"
+
 	// VerificationPreferred User verification is preferred to create/release a credential
 	VerificationPreferred UserVerificationRequirement = "preferred" // This is the default
+
 	// VerificationDiscouraged The authenticator should not verify the user for the credential
 	VerificationDiscouraged UserVerificationRequirement = "discouraged"
 )
@@ -121,68 +170,92 @@ const (
 // authenticatorData that contains bits that give us information about the
 // whether the user was present and/or verified during authentication, and whether
 // there is attestation or extension data present. Bit 0 is the least significant bit.
+//
+// Specification: §6.1. Authenticator Data - Flags (https://www.w3.org/TR/webauthn/#flags)
 type AuthenticatorFlags byte
 
 // The bits that do not have flags are reserved for future use.
 const (
-	// FlagUserPresent Bit 00000001 in the byte sequence. Tells us if user is present
+	// FlagUserPresent Bit 00000001 in the byte sequence. Tells us if user is present. Also referred to as the UP flag.
 	FlagUserPresent AuthenticatorFlags = 1 << iota // Referred to as UP
-	_                                              // Reserved
+
+	// FlagRFU1 is a reserved for future use flag.
+	FlagRFU1
+
 	// FlagUserVerified Bit 00000100 in the byte sequence. Tells us if user is verified
-	// by the authenticator using a biometric or PIN
-	FlagUserVerified // Referred to as UV
-	// FlagBackupEligible Bit 00001000 in the byte sequence. Tells us if a backup is eligible for device
+	// by the authenticator using a biometric or PIN. Also referred to as the UV flag.
+	FlagUserVerified
+
+	// FlagBackupEligible Bit 00001000 in the byte sequence. Tells us if a backup is eligible for device. Also referred
+	// to as the BE flag.
 	FlagBackupEligible // Referred to as BE
-	// FlagBackupState Bit 00010000 in the byte sequence. Tells us if a backup state for device
-	FlagBackupState // Referred to as BS
-	_               // Reserved
+
+	// FlagBackupState Bit 00010000 in the byte sequence. Tells us if a backup state for device. Also referred to as the
+	// BS flag.
+	FlagBackupState
+
+	// FlagRFU2 is a reserved for future use flag.
+	FlagRFU2
+
 	// FlagAttestedCredentialData Bit 01000000 in the byte sequence. Indicates whether
-	// the authenticator added attested credential data.
-	FlagAttestedCredentialData // Referred to as AT
-	// FlagHasExtension Bit 10000000 in the byte sequence. Indicates if the authenticator data has extensions.
-	FlagHasExtensions //  Referred to as ED
+	// the authenticator added attested credential data. Also referred to as the AT flag.
+	FlagAttestedCredentialData
+
+	// FlagHasExtensions Bit 10000000 in the byte sequence. Indicates if the authenticator data has extensions. Also
+	// referred to as the ED flag.
+	FlagHasExtensions
 )
 
-// UserPresent returns if the UP flag was set
+// UserPresent returns if the UP flag was set.
 func (flag AuthenticatorFlags) UserPresent() bool {
+	return flag.HasUserPresent()
+}
+
+// UserVerified returns if the UV flag was set.
+func (flag AuthenticatorFlags) UserVerified() bool {
+	return flag.HasUserVerified()
+}
+
+// HasUserPresent returns if the UP flag was set.
+func (flag AuthenticatorFlags) HasUserPresent() bool {
 	return (flag & FlagUserPresent) == FlagUserPresent
 }
 
-// UserVerified returns if the UV flag was set
-func (flag AuthenticatorFlags) UserVerified() bool {
+// HasUserVerified returns if the UV flag was set.
+func (flag AuthenticatorFlags) HasUserVerified() bool {
 	return (flag & FlagUserVerified) == FlagUserVerified
 }
 
-// HasAttestedCredentialData returns if the AT flag was set
+// HasAttestedCredentialData returns if the AT flag was set.
 func (flag AuthenticatorFlags) HasAttestedCredentialData() bool {
 	return (flag & FlagAttestedCredentialData) == FlagAttestedCredentialData
 }
 
-// HasExtensions returns if the ED flag was set
+// HasExtensions returns if the ED flag was set.
 func (flag AuthenticatorFlags) HasExtensions() bool {
 	return (flag & FlagHasExtensions) == FlagHasExtensions
 }
 
-// HasBackupEligible returns if the BE flag was set
+// HasBackupEligible returns if the BE flag was set.
 func (flag AuthenticatorFlags) HasBackupEligible() bool {
 	return (flag & FlagBackupEligible) == FlagBackupEligible
 }
 
-// HasBackupState returns if the BS flag was set
+// HasBackupState returns if the BS flag was set.
 func (flag AuthenticatorFlags) HasBackupState() bool {
 	return (flag & FlagBackupState) == FlagBackupState
 }
 
-// Unmarshal will take the raw Authenticator Data and marshalls it into AuthenticatorData for further validation.
+// Unmarshal will take the raw Authenticator Data and marshals it into AuthenticatorData for further validation.
 // The authenticator data has a compact but extensible encoding. This is desired since authenticators can be
 // devices with limited capabilities and low power requirements, with much simpler software stacks than the client platform.
 // The authenticator data structure is a byte array of 37 bytes or more, and is laid out in this table:
 // https://www.w3.org/TR/webauthn/#table-authData
-func (a *AuthenticatorData) Unmarshal(rawAuthData []byte) error {
+func (a *AuthenticatorData) Unmarshal(rawAuthData []byte) (err error) {
 	if minAuthDataLength > len(rawAuthData) {
-		err := ErrBadRequest.WithDetails("Authenticator data length too short")
-		info := fmt.Sprintf("Expected data greater than %d bytes. Got %d bytes", minAuthDataLength, len(rawAuthData))
-		return err.WithInfo(info)
+		return ErrBadRequest.
+			WithDetails("Authenticator data length too short").
+			WithInfo(fmt.Sprintf("Expected data greater than %d bytes. Got %d bytes", minAuthDataLength, len(rawAuthData)))
 	}
 
 	a.RPIDHash = rawAuthData[:32]
@@ -193,10 +266,10 @@ func (a *AuthenticatorData) Unmarshal(rawAuthData []byte) error {
 
 	if a.Flags.HasAttestedCredentialData() {
 		if len(rawAuthData) > minAttestedAuthLength {
-			validError := a.unmarshalAttestedData(rawAuthData)
-			if validError != nil {
-				return validError
+			if err = a.unmarshalAttestedData(rawAuthData); err != nil {
+				return err
 			}
+
 			attDataLen := len(a.AttData.AAGUID) + 2 + len(a.AttData.CredentialID) + len(a.AttData.CredentialPublicKey)
 			remaining = remaining - attDataLen
 		} else {
@@ -224,7 +297,7 @@ func (a *AuthenticatorData) Unmarshal(rawAuthData []byte) error {
 	return nil
 }
 
-// If Attestation Data is present, unmarshall that into the appropriate public key structure
+// If Attestation Data is present, unmarshall that into the appropriate public key structure.
 func (a *AuthenticatorData) unmarshalAttestedData(rawAuthData []byte) (err error) {
 	a.AttData.AAGUID = rawAuthData[37:53]
 
@@ -247,7 +320,7 @@ func (a *AuthenticatorData) unmarshalAttestedData(rawAuthData []byte) (err error
 	return nil
 }
 
-// Unmarshall the credential's Public Key into CBOR encoding
+// Unmarshall the credential's Public Key into CBOR encoding.
 func unmarshalCredentialPublicKey(keyBytes []byte) ([]byte, error) {
 	var m interface{}
 
@@ -264,7 +337,7 @@ func unmarshalCredentialPublicKey(keyBytes []byte) ([]byte, error) {
 	return rawBytes, nil
 }
 
-// ResidentKeyRequired - Require that the key be private key resident to the client device
+// ResidentKeyRequired - Require that the key be private key resident to the client device.
 func ResidentKeyRequired() *bool {
 	required := true
 
@@ -316,7 +389,7 @@ func (a *AuthenticatorData) Verify(rpIdHash []byte, appIDHash []byte, userVerifi
 	// extensions are present that were not requested. In the general case, the meaning
 	// of "are as expected" is specific to the Relying Party and which extensions are in use.
 
-	// This is not yet fully implemented by the spec or by browsers
+	// This is not yet fully implemented by the spec or by browsers.
 
 	return nil
 }

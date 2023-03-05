@@ -11,15 +11,15 @@ import (
 	"github.com/NHAS/webauthn/protocol/webauthncose"
 )
 
-// The raw response returned to us from an authenticator when we request a
+// The CredentialAssertionResponse is the raw response returned to the Relying Party from an authenticator when we request a
 // credential for login/assertion.
 type CredentialAssertionResponse struct {
 	PublicKeyCredential
 	AssertionResponse AuthenticatorAssertionResponse `json:"response"`
 }
 
-// The parsed CredentialAssertionResponse that has been marshalled into a format
-// that allows us to verify the client and authenticator data inside the response
+// The ParsedCredentialAssertionData is the parsed CredentialAssertionResponse that has been marshalled into a format
+// that allows us to verify the client and authenticator data inside the response.
 type ParsedCredentialAssertionData struct {
 	ParsedPublicKeyCredential
 	Response ParsedAssertionResponse
@@ -27,7 +27,7 @@ type ParsedCredentialAssertionData struct {
 }
 
 // The AuthenticatorAssertionResponse contains the raw authenticator assertion data and is parsed into
-// ParsedAssertionResponse
+// ParsedAssertionResponse.
 type AuthenticatorAssertionResponse struct {
 	AuthenticatorResponse
 	AuthenticatorData URLEncodedBase64 `json:"authenticatorData"`
@@ -35,7 +35,7 @@ type AuthenticatorAssertionResponse struct {
 	UserHandle        URLEncodedBase64 `json:"userHandle,omitempty"`
 }
 
-// Parsed form of AuthenticatorAssertionResponse
+// ParsedAssertionResponse is the parsed form of AuthenticatorAssertionResponse.
 type ParsedAssertionResponse struct {
 	CollectedClientData CollectedClientData
 	AuthenticatorData   AuthenticatorData
@@ -43,65 +43,85 @@ type ParsedAssertionResponse struct {
 	UserHandle          []byte
 }
 
-// Parse the credential request response into a format that is either required by the specification
-// or makes the assertion verification steps easier to complete. This takes an http.Request that contains
-// the assertion response data in a raw, mostly base64 encoded format, and parses the data into
-// manageable structures
+// ParseCredentialRequestResponse parses the credential request response into a format that is either required by the
+// specification or makes the assertion verification steps easier to complete. This takes a http.Request that contains
+// the assertion response data in a raw, mostly base64 encoded format, and parses the data into manageable structures.
 func ParseCredentialRequestResponse(response *http.Request) (*ParsedCredentialAssertionData, error) {
 	if response == nil || response.Body == nil {
 		return nil, ErrBadRequest.WithDetails("No response given")
 	}
+
 	return ParseCredentialRequestResponseBody(response.Body)
 }
 
-// Parse the credential request response into a format that is either required by the specification
-// or makes the assertion verification steps easier to complete. This takes an io.Reader that contains
-// the assertion response data in a raw, mostly base64 encoded format, and parses the data into
-// manageable structures
-func ParseCredentialRequestResponseBody(body io.Reader) (*ParsedCredentialAssertionData, error) {
+// ParseCredentialRequestResponseBody parses the credential request response into a format that is either required by
+// the specification or makes the assertion verification steps easier to complete. This takes an io.Reader that contains
+// the assertion response data in a raw, mostly base64 encoded format, and parses the data into manageable structures.
+func ParseCredentialRequestResponseBody(body io.Reader) (par *ParsedCredentialAssertionData, err error) {
 	var car CredentialAssertionResponse
-	err := json.NewDecoder(body).Decode(&car)
-	if err != nil {
+
+	if err = json.NewDecoder(body).Decode(&car); err != nil {
 		return nil, ErrBadRequest.WithDetails("Parse error for Assertion")
 	}
 
+	return car.Parse()
+}
+
+// Parse validates and parses the CredentialAssertionResponse into a ParseCredentialCreationResponseBody. This receiver
+// is unlikely to be expressly guaranteed under the versioning policy. Users looking for this guarantee should see
+// ParseCredentialRequestResponseBody instead, and this receiver should only be used if that function is inadequate
+// for their use case.
+func (car CredentialAssertionResponse) Parse() (par *ParsedCredentialAssertionData, err error) {
 	if car.ID == "" {
 		return nil, ErrBadRequest.WithDetails("CredentialAssertionResponse with ID missing")
 	}
 
-	_, err = base64.RawURLEncoding.DecodeString(car.ID)
-	if err != nil {
+	if _, err = base64.RawURLEncoding.DecodeString(car.ID); err != nil {
 		return nil, ErrBadRequest.WithDetails("CredentialAssertionResponse with ID not base64url encoded")
 	}
+
 	if car.Type != "public-key" {
 		return nil, ErrBadRequest.WithDetails("CredentialAssertionResponse with bad type")
 	}
-	var par ParsedCredentialAssertionData
-	par.ID, par.RawID, par.Type, par.ClientExtensionResults = car.ID, car.RawID, car.Type, car.ClientExtensionResults
-	par.Raw = car
 
-	par.Response.Signature = car.AssertionResponse.Signature
-	par.Response.UserHandle = car.AssertionResponse.UserHandle
+	var attachment AuthenticatorAttachment
+
+	switch car.AuthenticatorAttachment {
+	case "platform":
+		attachment = Platform
+	case "cross-platform":
+		attachment = CrossPlatform
+	}
+
+	par = &ParsedCredentialAssertionData{
+		ParsedPublicKeyCredential{
+			ParsedCredential{car.ID, car.Type}, car.RawID, car.ClientExtensionResults, attachment,
+		},
+		ParsedAssertionResponse{
+			Signature:  car.AssertionResponse.Signature,
+			UserHandle: car.AssertionResponse.UserHandle,
+		},
+		car,
+	}
 
 	// Step 5. Let JSONtext be the result of running UTF-8 decode on the value of cData.
 	// We don't call it cData but this is Step 5 in the spec.
-	err = json.Unmarshal(car.AssertionResponse.ClientDataJSON, &par.Response.CollectedClientData)
-	if err != nil {
+	if err = json.Unmarshal(car.AssertionResponse.ClientDataJSON, &par.Response.CollectedClientData); err != nil {
 		return nil, err
 	}
 
-	err = par.Response.AuthenticatorData.Unmarshal(car.AssertionResponse.AuthenticatorData)
-	if err != nil {
+	if err = par.Response.AuthenticatorData.Unmarshal(car.AssertionResponse.AuthenticatorData); err != nil {
 		return nil, ErrParsingData.WithDetails("Error unmarshalling auth data")
 	}
-	return &par, nil
+
+	return par, nil
 }
 
-// Follow the remaining steps outlined in §7.2 Verifying an authentication assertion
-// (https://www.w3.org/TR/webauthn/#verifying-assertion) and return an error if there
-// is a failure during each step.
+// Verify the remaining elements of the assertion data by following the steps outlined in the referenced specification
+// documentation.
+//
+// Specification: §7.2 Verifying an Authentication Assertion (https://www.w3.org/TR/webauthn/#sctn-verifying-assertion)
 func (p *ParsedCredentialAssertionData) Verify(storedChallenge string, relyingPartyID string, relyingPartyOrigins []string, appID string, verifyUser bool, credentialBytes []byte) error {
-
 	// Steps 4 through 6 in verifying the assertion data (https://www.w3.org/TR/webauthn/#verifying-assertion) are
 	// "assertive" steps, i.e "Let JSONtext be the result of running UTF-8 decode on the value of cData."
 	// We handle these steps in part as we verify but also beforehand

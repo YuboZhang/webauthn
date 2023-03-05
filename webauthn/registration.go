@@ -2,29 +2,46 @@ package webauthn
 
 import (
 	"bytes"
+	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/NHAS/webauthn/protocol"
 	"github.com/NHAS/webauthn/protocol/webauthncose"
 )
 
 // BEGIN REGISTRATION
-// These objects help us creat the CredentialCreationOptions
-// that will be passed to the authenticator via the user client
+// These objects help us create the CredentialCreationOptions
+// that will be passed to the authenticator via the user client.
 
+// RegistrationOption describes a function which modifies the registration *protocol.PublicKeyCredentialCreationOptions
+// values.
 type RegistrationOption func(*protocol.PublicKeyCredentialCreationOptions)
 
 // BeginRegistration generates a new set of registration data to be sent to the client and authenticator.
-func (webauthn *WebAuthn) BeginRegistration(user User, opts ...RegistrationOption) (*protocol.CredentialCreation, *SessionData, error) {
+func (webauthn *WebAuthn) BeginRegistration(user User, opts ...RegistrationOption) (creation *protocol.CredentialCreation, session *SessionData, err error) {
 	userAccessLock.RLock()
 	defer userAccessLock.RUnlock()
+
+	if err = webauthn.Config.validate(); err != nil {
+		return nil, nil, fmt.Errorf(errFmtConfigValidate, err)
+	}
+
 	challenge, err := protocol.CreateChallenge()
 	if err != nil {
 		return nil, nil, err
 	}
 
-	webAuthnUser := protocol.UserEntity{
-		ID:          user.WebAuthnID(),
+	var entityUserID interface{}
+
+	if webauthn.Config.EncodeUserIDAsString {
+		entityUserID = string(user.WebAuthnID())
+	} else {
+		entityUserID = protocol.URLEncodedBase64(user.WebAuthnID())
+	}
+
+	entityUser := protocol.UserEntity{
+		ID:          entityUserID,
 		DisplayName: user.WebAuthnDisplayName(),
 		CredentialEntity: protocol.CredentialEntity{
 			Name: user.WebAuthnName(),
@@ -32,7 +49,7 @@ func (webauthn *WebAuthn) BeginRegistration(user User, opts ...RegistrationOptio
 		},
 	}
 
-	relyingParty := protocol.RelyingPartyEntity{
+	entityRelyingParty := protocol.RelyingPartyEntity{
 		ID: webauthn.Config.RPID,
 		CredentialEntity: protocol.CredentialEntity{
 			Name: webauthn.Config.RPDisplayName,
@@ -42,63 +59,74 @@ func (webauthn *WebAuthn) BeginRegistration(user User, opts ...RegistrationOptio
 
 	credentialParams := defaultRegistrationCredentialParameters()
 
-	creationOptions := protocol.PublicKeyCredentialCreationOptions{
-		Challenge:              challenge,
-		RelyingParty:           relyingParty,
-		User:                   webAuthnUser,
-		Parameters:             credentialParams,
-		AuthenticatorSelection: webauthn.Config.AuthenticatorSelection,
-		Timeout:                webauthn.Config.Timeout,
-		Attestation:            webauthn.Config.AttestationPreference,
+	creation = &protocol.CredentialCreation{
+		Response: protocol.PublicKeyCredentialCreationOptions{
+			RelyingParty:           entityRelyingParty,
+			User:                   entityUser,
+			Challenge:              challenge,
+			Parameters:             credentialParams,
+			AuthenticatorSelection: webauthn.Config.AuthenticatorSelection,
+			Attestation:            webauthn.Config.AttestationPreference,
+		},
 	}
 
-	for _, setter := range opts {
-		setter(&creationOptions)
+	for _, opt := range opts {
+		opt(&creation.Response)
 	}
 
-	response := protocol.CredentialCreation{Response: creationOptions}
-	newSessionData := SessionData{
+	if creation.Response.Timeout == 0 {
+		switch {
+		case creation.Response.AuthenticatorSelection.UserVerification == protocol.VerificationDiscouraged:
+			creation.Response.Timeout = int(webauthn.Config.Timeouts.Registration.Timeout.Milliseconds())
+		default:
+			creation.Response.Timeout = int(webauthn.Config.Timeouts.Registration.Timeout.Milliseconds())
+		}
+	}
+
+	session = &SessionData{
 		Challenge:        challenge.String(),
 		UserID:           user.WebAuthnID(),
-		UserVerification: creationOptions.AuthenticatorSelection.UserVerification,
+		UserVerification: creation.Response.AuthenticatorSelection.UserVerification,
 	}
 
-	if err != nil {
-		return nil, nil, protocol.ErrParsingData.WithDetails("Error packing session data")
+	if webauthn.Config.Timeouts.Registration.Enforce {
+		session.Expires = time.Now().Add(time.Millisecond * time.Duration(creation.Response.Timeout))
 	}
 
-	return &response, &newSessionData, nil
+	return creation, session, nil
 }
 
-// Provide non-default parameters regarding the authenticator to select.
+// WithAuthenticatorSelection adjusts the non-default parameters regarding the authenticator to select during
+// registration.
 func WithAuthenticatorSelection(authenticatorSelection protocol.AuthenticatorSelection) RegistrationOption {
 	return func(cco *protocol.PublicKeyCredentialCreationOptions) {
 		cco.AuthenticatorSelection = authenticatorSelection
 	}
 }
 
-// Provide non-default parameters regarding credentials to exclude from retrieval.
+// WithExclusions adjusts the non-default parameters regarding credentials to exclude from registration.
 func WithExclusions(excludeList []protocol.CredentialDescriptor) RegistrationOption {
 	return func(cco *protocol.PublicKeyCredentialCreationOptions) {
 		cco.CredentialExcludeList = excludeList
 	}
 }
 
-// Provide non-default parameters regarding whether the authenticator should attest to the credential.
+// WithConveyancePreference adjusts the non-default parameters regarding whether the authenticator should attest to the
+// credential.
 func WithConveyancePreference(preference protocol.ConveyancePreference) RegistrationOption {
 	return func(cco *protocol.PublicKeyCredentialCreationOptions) {
 		cco.Attestation = preference
 	}
 }
 
-// Provide extension parameter to registration options
+// WithExtensions adjusts the extension parameter in the registration options.
 func WithExtensions(extension protocol.AuthenticationExtensions) RegistrationOption {
 	return func(cco *protocol.PublicKeyCredentialCreationOptions) {
 		cco.Extensions = extension
 	}
 }
 
-// Provide credential parameters to registration options
+// WithCredentialParameters adjusts the credential parameters in the registration options.
 func WithCredentialParameters(credentialParams []protocol.CredentialParameter) RegistrationOption {
 	return func(cco *protocol.PublicKeyCredentialCreationOptions) {
 		cco.Parameters = credentialParams
@@ -121,10 +149,11 @@ func WithAppIdExcludeExtension(appid string) RegistrationOption {
 	}
 }
 
-// WithResidentKeyRequirement sets both the resident key and require resident key protocol options. When
+// WithResidentKeyRequirement sets both the resident key and require resident key protocol options.
 func WithResidentKeyRequirement(requirement protocol.ResidentKeyRequirement) RegistrationOption {
 	return func(cco *protocol.PublicKeyCredentialCreationOptions) {
 		cco.AuthenticatorSelection.ResidentKey = requirement
+
 		switch requirement {
 		case protocol.ResidentKeyRequirementRequired:
 			cco.AuthenticatorSelection.RequireResidentKey = protocol.ResidentKeyRequired()
@@ -134,8 +163,8 @@ func WithResidentKeyRequirement(requirement protocol.ResidentKeyRequirement) Reg
 	}
 }
 
-// Take the response from the authenticator and client and verify the credential against the user's credentials and
-// session data.
+// FinishRegistration takes the response from the authenticator and client and verify the credential against the user's
+// credentials and session data.
 func (webauthn *WebAuthn) FinishRegistration(user User, session SessionData, response *http.Request) (*Credential, error) {
 	parsedResponse, err := protocol.ParseCredentialCreationResponse(response)
 	if err != nil {
@@ -152,6 +181,10 @@ func (webauthn *WebAuthn) CreateCredential(user User, session SessionData, parse
 
 	if !bytes.Equal(user.WebAuthnID(), session.UserID) {
 		return nil, protocol.ErrBadRequest.WithDetails("ID mismatch for User and Session")
+	}
+
+	if !session.Expires.IsZero() && session.Expires.Before(time.Now()) {
+		return nil, protocol.ErrBadRequest.WithDetails("Session has Expired")
 	}
 
 	shouldVerifyUser := session.UserVerification == protocol.VerificationRequired
