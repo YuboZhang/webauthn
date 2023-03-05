@@ -252,5 +252,5 @@ func (webauthn *WebAuthn) validateLogin(user User, session SessionData, parsedRe
 	loginCredential.Flags.BackupEligible = parsedResponse.Response.AuthenticatorData.Flags.HasBackupEligible()
 	loginCredential.Flags.BackupState = parsedResponse.Response.AuthenticatorData.Flags.HasBackupState()
 
-	return &loginCredential, nil
+	return loginCredential, nil
 }

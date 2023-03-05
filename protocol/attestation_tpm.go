@@ -9,16 +9,10 @@ import (
 	"fmt"
 	"strings"
 
-<<<<<<< HEAD
-	"github.com/NHAS/webauthn/metadata"
-	"github.com/NHAS/webauthn/protocol/webauthncose"
-	"github.com/google/go-tpm/tpm2"
-=======
 	"github.com/google/go-tpm/tpm2"
 
-	"github.com/go-webauthn/webauthn/metadata"
-	"github.com/go-webauthn/webauthn/protocol/webauthncose"
->>>>>>> upstream/master
+	"github.com/NHAS/webauthn/metadata"
+	"github.com/NHAS/webauthn/protocol/webauthncose"
 )
 
 var tpmAttestationKey = "tpm"

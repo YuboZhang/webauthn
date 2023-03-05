@@ -14,16 +14,10 @@ import (
 	"math/big"
 	"testing"
 
-<<<<<<< HEAD
 	"github.com/NHAS/webauthn/protocol/webauthncbor"
 	"github.com/NHAS/webauthn/protocol/webauthncose"
-=======
->>>>>>> upstream/master
 	"github.com/google/go-tpm/tpm2"
 	"github.com/stretchr/testify/assert"
-
-	"github.com/go-webauthn/webauthn/protocol/webauthncbor"
-	"github.com/go-webauthn/webauthn/protocol/webauthncose"
 )
 
 func TestTPMAttestationVerificationSuccess(t *testing.T) {

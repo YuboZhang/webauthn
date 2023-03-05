@@ -8,14 +8,9 @@ import (
 	"strings"
 	"time"
 
-<<<<<<< HEAD
 	"github.com/NHAS/webauthn/metadata"
 
 	"github.com/NHAS/webauthn/protocol/webauthncose"
-=======
-	"github.com/go-webauthn/webauthn/metadata"
-	"github.com/go-webauthn/webauthn/protocol/webauthncose"
->>>>>>> upstream/master
 )
 
 var packedAttestationKey = "packed"

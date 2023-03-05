@@ -5,7 +5,7 @@ import (
 	"net/url"
 	"time"
 
-	"github.com/go-webauthn/webauthn/protocol"
+	"github.com/NHAS/webauthn/protocol"
 )
 
 // New creates a new WebAuthn object given the proper Config.
@@ -195,7 +195,10 @@ type User interface {
 	WebAuthnDisplayName() string
 
 	// WebAuthnCredentials provides the list of Credential objects owned by the user.
-	WebAuthnCredentials() []Credential
+	WebAuthnCredentials() []*Credential
+
+	//Get a webauthncredential
+	WebAuthnCredential(ID []byte) *Credential
 
 	// WebAuthnIcon is a deprecated option.
 	// Deprecated: this has been removed from the specification recommendation. Suggest a blank string.

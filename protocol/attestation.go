@@ -6,16 +6,10 @@ import (
 	"encoding/json"
 	"fmt"
 
-<<<<<<< HEAD
-	"github.com/NHAS/webauthn/metadata"
-	"github.com/NHAS/webauthn/protocol/webauthncbor"
-	"github.com/google/uuid"
-=======
 	"github.com/google/uuid"
 
-	"github.com/go-webauthn/webauthn/metadata"
-	"github.com/go-webauthn/webauthn/protocol/webauthncbor"
->>>>>>> upstream/master
+	"github.com/NHAS/webauthn/metadata"
+	"github.com/NHAS/webauthn/protocol/webauthncbor"
 )
 
 // AuthenticatorAttestationResponse is the initial unpacked 'response' object received by the relying party. This

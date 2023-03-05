@@ -6,13 +6,9 @@ import (
 	"io"
 	"testing"
 
-<<<<<<< HEAD
-	"github.com/NHAS/webauthn/protocol/webauthncbor"
-=======
 	"github.com/stretchr/testify/assert"
 
-	"github.com/go-webauthn/webauthn/protocol/webauthncbor"
->>>>>>> upstream/master
+	"github.com/NHAS/webauthn/protocol/webauthncbor"
 )
 
 func TestParseCredentialCreationResponse(t *testing.T) {

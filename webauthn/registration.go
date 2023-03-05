@@ -4,11 +4,14 @@ import (
 	"bytes"
 	"fmt"
 	"net/http"
+	"sync"
 	"time"
 
 	"github.com/NHAS/webauthn/protocol"
 	"github.com/NHAS/webauthn/protocol/webauthncose"
 )
+
+var userAccessLock sync.RWMutex
 
 // BEGIN REGISTRATION
 // These objects help us create the CredentialCreationOptions
