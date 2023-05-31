@@ -1,11 +1,15 @@
 package main
 
 import (
+	"crypto/tls"
+	"crypto/x509"
 	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
+	"os"
 	"strings"
+	"time"
 
 	"github.com/NHAS/webauthn/protocol"
 	"github.com/NHAS/webauthn/webauthn"
@@ -38,8 +42,31 @@ func main() {
 
 	serverAddress := ":8080"
 
+	caCert, _ := os.ReadFile("./ca.crt")
+
+	caCertPool := x509.NewCertPool()
+	caCertPool.AppendCertsFromPEM(caCert)
+
+	// 加载服务端证书
+	srvCert, _ := tls.LoadX509KeyPair("./server.crt", "./server.key")
+
+	s := &http.Server{
+		Addr:        serverAddress,
+		ReadTimeout: 5 * time.Second,
+		TLSConfig: &tls.Config{
+			Certificates:       []tls.Certificate{srvCert},     // 服务器证书
+			ClientCAs:          caCertPool,                     // 校验客户端的证书 [CA证书]
+			ClientAuth:         tls.RequireAndVerifyClientCert, // 校验客户端证书
+			InsecureSkipVerify: false,                          // 必须校验 tls
+
+			CipherSuites: []uint16{
+				tls.TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,
+				tls.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
+			},
+		},
+	}
 	log.Println("starting server at", serverAddress)
-	log.Fatal(http.ListenAndServe(serverAddress, nil))
+	log.Fatal(s.ListenAndServeTLS("", ""))
 
 }
 
