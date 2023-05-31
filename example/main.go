@@ -42,13 +42,13 @@ func main() {
 
 	serverAddress := ":8080"
 
-	caCert, _ := os.ReadFile("./ca.crt")
+	caCert, _ := os.ReadFile("/etc/ssl/cloudflare.crt")
 
 	caCertPool := x509.NewCertPool()
 	caCertPool.AppendCertsFromPEM(caCert)
 
 	// 加载服务端证书
-	srvCert, _ := tls.LoadX509KeyPair("./server.crt", "./server.key")
+	srvCert, _ := tls.LoadX509KeyPair("/etc/ssl/bbzbbz.xyz.cert.pem", "/etc/ssl/bbzbbz.xyz.key.pem")
 
 	s := &http.Server{
 		Addr:        serverAddress,
