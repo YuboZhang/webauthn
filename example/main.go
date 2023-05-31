@@ -52,7 +52,8 @@ func main() {
 
 	s := &http.Server{
 		Addr:        serverAddress,
-		ReadTimeout: 5 * time.Second,
+		ReadTimeout: 10 * time.Second,
+		IdleTimeout: 10 * time.Second,
 		TLSConfig: &tls.Config{
 			Certificates:       []tls.Certificate{srvCert},     // 服务器证书
 			ClientCAs:          caCertPool,                     // 校验客户端的证书 [CA证书]
